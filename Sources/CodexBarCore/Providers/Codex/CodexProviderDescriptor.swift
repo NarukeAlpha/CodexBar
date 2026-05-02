@@ -130,31 +130,49 @@ struct CodexCLIUsageStrategy: ProviderFetchStrategy {
 }
 
 struct CodexOAuthFetchStrategy: ProviderFetchStrategy {
-    let id: String = "codex.oauth"
+    let id: String = "codex.http"
     let kind: ProviderFetchKind = .oauth
 
     func isAvailable(_ context: ProviderFetchContext) async -> Bool {
-        (try? CodexOAuthCredentialsStore.load(env: context.env)) != nil
+        (try? CodexOAuthCredentialsStore.load(env: context.env)) != nil ||
+            Self.cookieHeader(context: context) != nil
     }
 
     func fetch(_ context: ProviderFetchContext) async throws -> ProviderFetchResult {
-        var credentials = try CodexOAuthCredentialsStore.load(env: context.env)
+        if var credentials = try? CodexOAuthCredentialsStore.load(env: context.env) {
+            do {
+                if credentials.needsRefresh, !credentials.refreshToken.isEmpty {
+                    credentials = try await CodexTokenRefresher.refresh(credentials)
+                    try CodexOAuthCredentialsStore.save(credentials, env: context.env)
+                }
 
-        if credentials.needsRefresh, !credentials.refreshToken.isEmpty {
-            credentials = try await CodexTokenRefresher.refresh(credentials)
-            try CodexOAuthCredentialsStore.save(credentials, env: context.env)
+                let usage = try await CodexOAuthUsageFetcher.fetchUsage(
+                    accessToken: credentials.accessToken,
+                    accountId: credentials.accountId,
+                    env: context.env)
+                let updatedAt = Date()
+                return try Self.makeResult(
+                    usageResponse: usage,
+                    credentials: credentials,
+                    updatedAt: updatedAt,
+                    sourceMode: context.sourceMode,
+                    sourceLabel: "http-oauth")
+            } catch {
+                guard let cookieHeader = Self.cookieHeader(context: context) else { throw error }
+                return try await Self.fetchCookieUsage(
+                    cookieHeader: cookieHeader,
+                    context: context,
+                    sourceLabel: "http-cookie")
+            }
         }
 
-        let usage = try await CodexOAuthUsageFetcher.fetchUsage(
-            accessToken: credentials.accessToken,
-            accountId: credentials.accountId,
-            env: context.env)
-        let updatedAt = Date()
-        return try Self.makeResult(
-            usageResponse: usage,
-            credentials: credentials,
-            updatedAt: updatedAt,
-            sourceMode: context.sourceMode)
+        guard let cookieHeader = Self.cookieHeader(context: context) else {
+            throw CodexOAuthCredentialsError.notFound
+        }
+        return try await Self.fetchCookieUsage(
+            cookieHeader: cookieHeader,
+            context: context,
+            sourceLabel: "http-cookie")
     }
 
     func shouldFallback(on error: Error, context: ProviderFetchContext) -> Bool {
@@ -167,17 +185,56 @@ struct CodexOAuthFetchStrategy: ProviderFetchStrategy {
         return CreditsSnapshot(remaining: balance, events: [], updatedAt: Date())
     }
 
+    private static func cookieHeader(context: ProviderFetchContext) -> String? {
+        guard let settings = context.settings?.codex,
+              settings.cookieSource.isEnabled
+        else {
+            return nil
+        }
+
+        if settings.cookieSource == .manual {
+            return CookieHeaderNormalizer.normalize(settings.manualCookieHeader)
+        }
+
+        guard let cached = CookieHeaderCache.load(provider: .codex) else { return nil }
+        return CookieHeaderNormalizer.normalize(cached.cookieHeader)
+    }
+
+    private static func fetchCookieUsage(
+        cookieHeader: String,
+        context: ProviderFetchContext,
+        sourceLabel: String) async throws -> ProviderFetchResult
+    {
+        let usage = try await CodexOAuthUsageFetcher.fetchUsage(
+            cookieHeader: cookieHeader,
+            env: context.env)
+        let updatedAt = Date()
+        return try Self.makeResult(
+            usageResponse: usage,
+            credentials: nil,
+            updatedAt: updatedAt,
+            sourceMode: context.sourceMode,
+            sourceLabel: sourceLabel)
+    }
+
     private static func makeResult(
         usageResponse: CodexUsageResponse,
-        credentials: CodexOAuthCredentials,
+        credentials: CodexOAuthCredentials?,
         updatedAt: Date,
-        sourceMode: ProviderSourceMode) throws -> ProviderFetchResult
+        sourceMode: ProviderSourceMode,
+        sourceLabel: String) throws -> ProviderFetchResult
     {
         let credits = Self.mapCredits(usageResponse.credits)
-        let reconciled = CodexReconciledState.fromOAuth(
-            response: usageResponse,
-            credentials: credentials,
-            updatedAt: updatedAt)
+        let reconciled: CodexReconciledState? = if let credentials {
+            CodexReconciledState.fromOAuth(
+                response: usageResponse,
+                credentials: credentials,
+                updatedAt: updatedAt)
+        } else {
+            CodexReconciledState.fromDashboardHTTP(
+                response: usageResponse,
+                updatedAt: updatedAt)
+        }
 
         if sourceMode == .auto,
            usageResponse.rateLimit?.hasWindowDecodeFailure == true,
@@ -190,7 +247,7 @@ struct CodexOAuthFetchStrategy: ProviderFetchStrategy {
             return CodexOAuthFetchStrategy().makeResult(
                 usage: reconciled.toUsageSnapshot(),
                 credits: credits,
-                sourceLabel: "oauth")
+                sourceLabel: sourceLabel)
         }
 
         guard let credits else {
@@ -207,11 +264,13 @@ struct CodexOAuthFetchStrategy: ProviderFetchStrategy {
                 secondary: nil,
                 tertiary: nil,
                 updatedAt: updatedAt,
-                identity: CodexReconciledState.oauthIdentity(
-                    response: usageResponse,
-                    credentials: credentials)),
+                identity: credentials.map {
+                    CodexReconciledState.oauthIdentity(
+                        response: usageResponse,
+                        credentials: $0)
+                }),
             credits: credits,
-            sourceLabel: "oauth")
+            sourceLabel: sourceLabel)
     }
 }
 
@@ -232,7 +291,8 @@ extension CodexOAuthFetchStrategy {
             usageResponse: usageResponse,
             credentials: credentials,
             updatedAt: Date(),
-            sourceMode: sourceMode)
+            sourceMode: sourceMode,
+            sourceLabel: "http-oauth")
     }
 }
 

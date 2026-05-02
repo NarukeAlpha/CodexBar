@@ -47,28 +47,9 @@ extension UsageStore {
     }
 
     func requestOpenAIDashboardRefreshIfStale(reason: String) {
-        guard self.isEnabled(.codex),
-              self.settings.openAIWebAccessEnabled,
-              self.settings.codexCookieSource.isEnabled
-        else { return }
-        let now = Date()
-        let refreshInterval = self.openAIWebRefreshIntervalSeconds()
-        let lastUpdatedAt = self.openAIDashboard?.updatedAt ?? self.lastOpenAIDashboardSnapshot?.updatedAt
-        if let lastUpdatedAt, now.timeIntervalSince(lastUpdatedAt) < refreshInterval { return }
-        let stamp = now.formatted(date: .abbreviated, time: .shortened)
-        self.logOpenAIWeb("[\(stamp)] OpenAI web refresh request: \(reason)")
-        let forceRefresh = Self.forceOpenAIWebRefreshForStaleRequest(
-            batterySaverEnabled: self.settings.openAIWebBatterySaverEnabled)
-        self.openAIWebLogger.debug(
-            "OpenAI web stale refresh gate",
-            metadata: [
-                "reason": reason,
-                "force": forceRefresh ? "1" : "0",
-                "batterySaverEnabled": self.settings.openAIWebBatterySaverEnabled ? "1" : "0",
-                "interaction": ProviderInteractionContext.current == .userInitiated ? "user" : "background",
-            ])
-        let expectedGuard = self.currentCodexOpenAIWebRefreshGuard()
-        Task { await self.refreshOpenAIDashboardIfNeeded(force: forceRefresh, expectedGuard: expectedGuard) }
+        _ = reason
+        // Dashboard WebKit refreshes are deliberately user-triggered only in the OpenAI-only fork.
+        // The normal polling loop uses the cheaper HTTP/Codex sources.
     }
 
     func applyOpenAIDashboard(
@@ -1119,12 +1100,13 @@ extension UsageStore {
 
 extension UsageStore {
     nonisolated static func shouldRunOpenAIWebRefresh(_ context: OpenAIWebRefreshPolicyContext) -> Bool {
-        guard context.accessEnabled else { return false }
-        return context.force || !context.batterySaverEnabled
+        _ = context
+        return false
     }
 
     nonisolated static func forceOpenAIWebRefreshForStaleRequest(batterySaverEnabled: Bool) -> Bool {
-        !batterySaverEnabled
+        _ = batterySaverEnabled
+        return false
     }
 
     nonisolated static func shouldSkipOpenAIWebRefresh(_ context: OpenAIWebRefreshGateContext) -> Bool {

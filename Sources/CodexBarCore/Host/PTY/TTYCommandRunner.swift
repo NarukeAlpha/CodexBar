@@ -407,15 +407,8 @@ public struct TTYCommandRunner {
 
         let proc = Process()
         let resolvedURL = URL(fileURLWithPath: resolved)
-        if resolvedURL.lastPathComponent == "claude",
-           let watchdog = Self.locateBundledHelper("CodexBarClaudeWatchdog")
-        {
-            proc.executableURL = URL(fileURLWithPath: watchdog)
-            proc.arguments = ["--", resolved] + options.extraArgs
-        } else {
-            proc.executableURL = resolvedURL
-            proc.arguments = options.extraArgs
-        }
+        proc.executableURL = resolvedURL
+        proc.arguments = options.extraArgs
         proc.standardInput = secondaryHandle
         proc.standardOutput = secondaryHandle
         proc.standardError = secondaryHandle

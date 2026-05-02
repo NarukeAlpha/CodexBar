@@ -1,6 +1,5 @@
 import AppKit
 import CodexBarCore
-import KeyboardShortcuts
 import Observation
 import QuartzCore
 import Security
@@ -302,11 +301,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppNotifications.shared.requestAuthorizationOnStartup()
         self.ensureStatusController()
-        KeyboardShortcuts.onKeyUp(for: .openMenu) { [weak self] in
-            Task { @MainActor [weak self] in
-                self?.statusController?.openMenuFromShortcut()
-            }
-        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {

@@ -197,13 +197,42 @@ public enum CodexOAuthUsageFetcher {
         accountId: String?,
         env: [String: String] = ProcessInfo.processInfo.environment) async throws -> CodexUsageResponse
     {
+        try await self.fetchUsage(
+            accessToken: accessToken,
+            accountId: accountId,
+            cookieHeader: nil,
+            env: env)
+    }
+
+    public static func fetchUsage(
+        cookieHeader: String,
+        env: [String: String] = ProcessInfo.processInfo.environment) async throws -> CodexUsageResponse
+    {
+        try await self.fetchUsage(
+            accessToken: nil,
+            accountId: nil,
+            cookieHeader: cookieHeader,
+            env: env)
+    }
+
+    private static func fetchUsage(
+        accessToken: String?,
+        accountId: String?,
+        cookieHeader: String?,
+        env: [String: String]) async throws -> CodexUsageResponse
+    {
         var request = URLRequest(url: Self.resolveUsageURL(env: env))
         request.httpMethod = "GET"
         request.timeoutInterval = 30
-        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue("CodexBar", forHTTPHeaderField: "User-Agent")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
 
+        if let accessToken, !accessToken.isEmpty {
+            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        }
+        if let cookieHeader, !cookieHeader.isEmpty {
+            request.setValue(cookieHeader, forHTTPHeaderField: "Cookie")
+        }
         if let accountId, !accountId.isEmpty {
             request.setValue(accountId, forHTTPHeaderField: "ChatGPT-Account-Id")
         }

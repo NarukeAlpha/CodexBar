@@ -368,9 +368,11 @@ extension SettingsStore {
     private static func effectiveProviderOrder(raw: [String]) -> [UsageProvider] {
         var seen: Set<UsageProvider> = []
         var ordered: [UsageProvider] = []
+        let supportedProviders = Set(UsageProvider.allCases)
 
         for rawValue in raw {
             guard let provider = UsageProvider(rawValue: rawValue) else { continue }
+            guard supportedProviders.contains(provider) else { continue }
             guard !seen.contains(provider) else { continue }
             seen.insert(provider)
             ordered.append(provider)
@@ -379,17 +381,6 @@ extension SettingsStore {
         if ordered.isEmpty {
             ordered = UsageProvider.allCases
             seen = Set(ordered)
-        }
-
-        if !seen.contains(.factory), let zaiIndex = ordered.firstIndex(of: .zai) {
-            ordered.insert(.factory, at: zaiIndex)
-            seen.insert(.factory)
-        }
-
-        if !seen.contains(.minimax), let zaiIndex = ordered.firstIndex(of: .zai) {
-            let insertIndex = ordered.index(after: zaiIndex)
-            ordered.insert(.minimax, at: insertIndex)
-            seen.insert(.minimax)
         }
 
         for provider in UsageProvider.allCases where !seen.contains(provider) {

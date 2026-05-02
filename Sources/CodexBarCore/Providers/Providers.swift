@@ -29,6 +29,8 @@ public enum UsageProvider: String, CaseIterable, Sendable, Codable {
     case openrouter
     case perplexity
     case abacus
+
+    public static let allCases: [UsageProvider] = [.codex]
 }
 
 // swiftformat:enable sortDeclarations

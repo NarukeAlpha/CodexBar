@@ -3,6 +3,8 @@ import Foundation
 
 @MainActor
 struct MenuDescriptor {
+    private static let showsMenuAccountManagement = false
+
     struct SubmenuItem: Equatable {
         let title: String
         let action: MenuAction?
@@ -349,41 +351,43 @@ struct MenuDescriptor {
         let targetProvider = provider ?? store.enabledProviders().first
         let metadata = targetProvider.map { store.metadata(for: $0) }
         let fallbackAccount = targetProvider.map { store.accountInfo(for: $0) } ?? account
-        let loginContext = targetProvider.map {
-            ProviderMenuLoginContext(
-                provider: $0,
-                store: store,
-                settings: store.settings,
-                account: fallbackAccount)
-        }
 
-        // Show "Add Account" if no account, "Switch Account" if logged in
-        if let targetProvider,
-           let implementation = ProviderCatalog.implementation(for: targetProvider),
-           implementation.supportsLoginFlow
-        {
-            if let loginContext,
-               let override = implementation.loginMenuAction(context: loginContext)
-            {
-                entries.append(.action(override.label, override.action))
-            } else {
-                let loginAction = self.switchAccountTarget(for: provider, store: store)
-                let hasAccount = self.hasAccount(for: provider, store: store, account: fallbackAccount)
-                let accountLabel = hasAccount ? "Switch Account..." : "Add Account..."
-                entries.append(.action(accountLabel, loginAction))
+        if Self.showsMenuAccountManagement {
+            let loginContext = targetProvider.map {
+                ProviderMenuLoginContext(
+                    provider: $0,
+                    store: store,
+                    settings: store.settings,
+                    account: fallbackAccount)
             }
-        }
 
-        if let targetProvider {
-            let actionContext = ProviderMenuActionContext(
-                provider: targetProvider,
-                store: store,
-                settings: store.settings,
-                account: fallbackAccount,
-                managedCodexAccountCoordinator: managedCodexAccountCoordinator,
-                codexAccountPromotionCoordinator: codexAccountPromotionCoordinator)
-            ProviderCatalog.implementation(for: targetProvider)?
-                .appendActionMenuEntries(context: actionContext, entries: &entries)
+            if let targetProvider,
+               let implementation = ProviderCatalog.implementation(for: targetProvider),
+               implementation.supportsLoginFlow
+            {
+                if let loginContext,
+                   let override = implementation.loginMenuAction(context: loginContext)
+                {
+                    entries.append(.action(override.label, override.action))
+                } else {
+                    let loginAction = self.switchAccountTarget(for: provider, store: store)
+                    let hasAccount = self.hasAccount(for: provider, store: store, account: fallbackAccount)
+                    let accountLabel = hasAccount ? "Switch Account..." : "Add Account..."
+                    entries.append(.action(accountLabel, loginAction))
+                }
+            }
+
+            if let targetProvider {
+                let actionContext = ProviderMenuActionContext(
+                    provider: targetProvider,
+                    store: store,
+                    settings: store.settings,
+                    account: fallbackAccount,
+                    managedCodexAccountCoordinator: managedCodexAccountCoordinator,
+                    codexAccountPromotionCoordinator: codexAccountPromotionCoordinator)
+                ProviderCatalog.implementation(for: targetProvider)?
+                    .appendActionMenuEntries(context: actionContext, entries: &entries)
+            }
         }
 
         if metadata?.dashboardURL != nil {

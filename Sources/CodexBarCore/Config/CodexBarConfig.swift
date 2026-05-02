@@ -25,11 +25,13 @@ public struct CodexBarConfig: Codable, Sendable {
     public func normalized(
         metadata: [UsageProvider: ProviderMetadata] = ProviderDescriptorRegistry.metadata) -> CodexBarConfig
     {
+        let supportedProviders = Set(UsageProvider.allCases)
         var seen: Set<UsageProvider> = []
         var normalized: [ProviderConfig] = []
         normalized.reserveCapacity(max(self.providers.count, UsageProvider.allCases.count))
 
         for provider in self.providers {
+            guard supportedProviders.contains(provider.id) else { continue }
             guard !seen.contains(provider.id) else { continue }
             seen.insert(provider.id)
             normalized.append(provider)
@@ -47,7 +49,8 @@ public struct CodexBarConfig: Codable, Sendable {
     }
 
     public func orderedProviders() -> [UsageProvider] {
-        self.providers.map(\.id)
+        let supportedProviders = Set(UsageProvider.allCases)
+        return self.providers.map(\.id).filter { supportedProviders.contains($0) }
     }
 
     public func enabledProviders(
@@ -60,7 +63,8 @@ public struct CodexBarConfig: Codable, Sendable {
     }
 
     public func providerConfig(for id: UsageProvider) -> ProviderConfig? {
-        self.providers.first(where: { $0.id == id })
+        guard UsageProvider.allCases.contains(id) else { return nil }
+        return self.providers.first(where: { $0.id == id })
     }
 
     public mutating func setProviderConfig(_ config: ProviderConfig) {
