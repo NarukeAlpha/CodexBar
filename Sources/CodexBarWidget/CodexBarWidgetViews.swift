@@ -256,34 +256,7 @@ private struct ProviderSwitchChip: View {
     }
 
     private var shortLabel: String {
-        switch self.provider {
-        case .codex: "Codex"
-        case .claude: "Claude"
-        case .gemini: "Gemini"
-        case .antigravity: "Anti"
-        case .cursor: "Cursor"
-        case .opencode: "OpenCode"
-        case .opencodego: "OpenCode Go"
-        case .alibaba: "Alibaba"
-        case .zai: "z.ai"
-        case .factory: "Droid"
-        case .copilot: "Copilot"
-        case .minimax: "MiniMax"
-        case .vertexai: "Vertex"
-        case .kilo: "Kilo"
-        case .kiro: "Kiro"
-        case .augment: "Augment"
-        case .jetbrains: "JetBrains"
-        case .kimi: "Kimi"
-        case .kimik2: "Kimi K2"
-        case .amp: "Amp"
-        case .ollama: "Ollama"
-        case .synthetic: "Synthetic"
-        case .openrouter: "OpenRouter"
-        case .warp: "Warp"
-        case .perplexity: "Pplx"
-        case .abacus: "Abacus"
-        }
+        "Codex"
     }
 }
 
@@ -589,62 +562,9 @@ private struct UsageHistoryChart: View {
 }
 
 enum WidgetColors {
-    // swiftlint:disable:next cyclomatic_complexity
     static func color(for provider: UsageProvider) -> Color {
-        switch provider {
-        case .codex:
-            Color(red: 73 / 255, green: 163 / 255, blue: 176 / 255)
-        case .claude:
-            Color(red: 204 / 255, green: 124 / 255, blue: 94 / 255)
-        case .gemini:
-            Color(red: 171 / 255, green: 135 / 255, blue: 234 / 255)
-        case .antigravity:
-            Color(red: 96 / 255, green: 186 / 255, blue: 126 / 255)
-        case .cursor:
-            Color(red: 0 / 255, green: 191 / 255, blue: 165 / 255) // #00BFA5 - Cursor teal
-        case .opencode:
-            Color(red: 59 / 255, green: 130 / 255, blue: 246 / 255)
-        case .opencodego:
-            Color(red: 59 / 255, green: 130 / 255, blue: 246 / 255)
-        case .alibaba:
-            Color(red: 1.0, green: 106 / 255, blue: 0)
-        case .zai:
-            Color(red: 232 / 255, green: 90 / 255, blue: 106 / 255)
-        case .factory:
-            Color(red: 255 / 255, green: 107 / 255, blue: 53 / 255) // Factory orange
-        case .copilot:
-            Color(red: 168 / 255, green: 85 / 255, blue: 247 / 255) // Purple
-        case .minimax:
-            Color(red: 254 / 255, green: 96 / 255, blue: 60 / 255)
-        case .vertexai:
-            Color(red: 66 / 255, green: 133 / 255, blue: 244 / 255) // Google Blue
-        case .kilo:
-            Color(red: 242 / 255, green: 112 / 255, blue: 39 / 255) // Kilo orange
-        case .kiro:
-            Color(red: 255 / 255, green: 153 / 255, blue: 0 / 255) // AWS orange
-        case .augment:
-            Color(red: 99 / 255, green: 102 / 255, blue: 241 / 255) // Augment purple
-        case .jetbrains:
-            Color(red: 255 / 255, green: 51 / 255, blue: 153 / 255) // JetBrains pink
-        case .kimi:
-            Color(red: 254 / 255, green: 96 / 255, blue: 60 / 255) // Kimi orange
-        case .kimik2:
-            Color(red: 76 / 255, green: 0 / 255, blue: 255 / 255) // Kimi K2 purple
-        case .amp:
-            Color(red: 220 / 255, green: 38 / 255, blue: 38 / 255) // Amp red
-        case .ollama:
-            Color(red: 32 / 255, green: 32 / 255, blue: 32 / 255) // Ollama charcoal
-        case .synthetic:
-            Color(red: 20 / 255, green: 20 / 255, blue: 20 / 255) // Synthetic charcoal
-        case .openrouter:
-            Color(red: 111 / 255, green: 66 / 255, blue: 193 / 255) // OpenRouter purple
-        case .warp:
-            Color(red: 147 / 255, green: 139 / 255, blue: 180 / 255)
-        case .perplexity:
-            Color(red: 32 / 255, green: 178 / 255, blue: 170 / 255) // Perplexity teal
-        case .abacus:
-            Color(red: 56 / 255, green: 189 / 255, blue: 248 / 255)
-        }
+        _ = provider
+        return Color(red: 73 / 255, green: 163 / 255, blue: 176 / 255)
     }
 }
 

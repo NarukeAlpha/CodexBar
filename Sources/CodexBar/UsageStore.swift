@@ -204,6 +204,8 @@ final class UsageStore {
     @ObservationIgnored var lastKnownSessionRemaining: [UsageProvider: Double] = [:]
     @ObservationIgnored var lastKnownSessionWindowSource: [UsageProvider: SessionQuotaWindowSource] = [:]
     @ObservationIgnored var lastTokenFetchAt: [UsageProvider: Date] = [:]
+    @ObservationIgnored private var lastBackgroundRefreshSignature: String?
+    @ObservationIgnored private var adaptiveBackgroundRefreshDelay: TimeInterval?
     @ObservationIgnored var planUtilizationHistory: [UsageProvider: PlanUtilizationHistoryBuckets] = [:]
     @ObservationIgnored private var hasCompletedInitialRefresh: Bool = false
     @ObservationIgnored private let tokenFetchTTL: TimeInterval = 60 * 60
@@ -521,6 +523,7 @@ final class UsageStore {
                 await self.refreshCreditsIfNeeded(minimumSnapshotUpdatedAt: refreshStartedAt)
             }
 
+            self.updateAdaptiveBackgroundRefreshStateIfNeeded()
             self.persistWidgetSnapshot(reason: "refresh")
         }
     }
@@ -547,15 +550,63 @@ final class UsageStore {
 
     private func startTimer() {
         self.timerTask?.cancel()
-        guard let wait = self.settings.refreshFrequency.seconds else { return }
+        guard self.settings.refreshFrequency.seconds != nil else { return }
 
         // Background poller so the menu stays responsive; canceled when settings change or store deallocates.
         self.timerTask = Task.detached(priority: .utility) { [weak self] in
             while !Task.isCancelled {
+                let wait = await self?.nextBackgroundRefreshDelay() ?? 300
                 try? await Task.sleep(for: .seconds(wait))
-                await self?.refresh()
+                await ProviderInteractionContext.$current.withValue(.background) {
+                    await self?.refresh()
+                }
             }
         }
+    }
+
+    private func nextBackgroundRefreshDelay() -> TimeInterval {
+        let base = self.settings.refreshFrequency.seconds ?? 300
+        guard let adaptive = self.adaptiveBackgroundRefreshDelay else { return base }
+        return max(base, adaptive)
+    }
+
+    private func updateAdaptiveBackgroundRefreshStateIfNeeded() {
+        guard ProviderInteractionContext.current == .background,
+              self.settings.refreshFrequency.seconds != nil
+        else {
+            self.adaptiveBackgroundRefreshDelay = nil
+            return
+        }
+
+        let signature = self.backgroundRefreshSignature()
+        if let lastBackgroundRefreshSignature,
+           lastBackgroundRefreshSignature == signature
+        {
+            self.adaptiveBackgroundRefreshDelay = 15 * 60
+        } else {
+            self.adaptiveBackgroundRefreshDelay = nil
+        }
+        self.lastBackgroundRefreshSignature = signature
+    }
+
+    private func backgroundRefreshSignature() -> String {
+        let snapshot = self.snapshots[.codex]
+        let windows = [snapshot?.primary, snapshot?.secondary, snapshot?.tertiary].map { window -> String in
+            guard let window else { return "nil" }
+            let reset = window.resetsAt?.timeIntervalSince1970 ?? -1
+            return [
+                String(format: "%.4f", window.usedPercent),
+                "\(window.windowMinutes ?? -1)",
+                "\(Int(reset))",
+                window.resetDescription ?? "",
+            ].joined(separator: ":")
+        }
+        let credits = self.credits.map { String(format: "%.4f", $0.remaining) } ?? "nil"
+        let codeReview = self.openAIDashboard.flatMap(\.codeReviewRemainingPercent)
+            .map { String(format: "%.4f", $0) } ?? "nil"
+        let source = self.lastSourceLabels[.codex] ?? "nil"
+        let error = self.errors[.codex] ?? "nil"
+        return ([source, credits, codeReview, error] + windows).joined(separator: "|")
     }
 
     private func startTokenTimer() {

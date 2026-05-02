@@ -5,19 +5,15 @@ import Testing
 
 struct CodexBarWidgetProviderTests {
     @Test
-    func `provider choice supports alibaba`() {
-        #expect(ProviderChoice(provider: .alibaba) == .alibaba)
-        #expect(ProviderChoice.alibaba.provider == .alibaba)
+    func `provider choice supports codex only`() {
+        #expect(ProviderChoice(provider: .codex) == .codex)
+        #expect(ProviderChoice.codex.provider == .codex)
+        #expect(ProviderChoice(provider: .alibaba) == nil)
+        #expect(ProviderChoice(provider: .opencodego) == nil)
     }
 
     @Test
-    func `provider choice supports opencode go`() {
-        #expect(ProviderChoice(provider: .opencodego) == .opencodego)
-        #expect(ProviderChoice.opencodego.provider == .opencodego)
-    }
-
-    @Test
-    func `supported providers keep alibaba when it is the only enabled provider`() {
+    func `supported providers force codex when another provider is present`() {
         let now = Date(timeIntervalSince1970: 1_700_000_000)
         let entry = WidgetSnapshot.ProviderEntry(
             provider: .alibaba,
@@ -31,7 +27,7 @@ struct CodexBarWidgetProviderTests {
             dailyUsage: [])
         let snapshot = WidgetSnapshot(entries: [entry], enabledProviders: [.alibaba], generatedAt: now)
 
-        #expect(CodexBarSwitcherTimelineProvider.supportedProviders(from: snapshot) == [.alibaba])
+        #expect(CodexBarSwitcherTimelineProvider.supportedProviders(from: snapshot) == [.codex])
     }
 
     @Test

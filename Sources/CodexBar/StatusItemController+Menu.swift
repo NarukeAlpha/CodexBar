@@ -14,6 +14,7 @@ extension StatusItemController {
     static let usageBreakdownChartID = "usageBreakdownChart"
     static let creditsHistoryChartID = "creditsHistoryChart"
     static let costHistoryChartID = "costHistoryChart"
+    static let costDetailsChartID = "costDetailsChart"
     static let usageHistoryChartID = "usageHistoryChart"
 
     private func menuCardWidth(for providers: [UsageProvider], menu: NSMenu? = nil) -> CGFloat {
@@ -205,9 +206,6 @@ extension StatusItemController {
                 currentProvider: currentProvider,
                 context: openAIContext,
                 addedOpenAIWebItems: addedOpenAIWebItems)
-            if self.addUsageHistoryMenuItemIfNeeded(to: menu, provider: currentProvider) {
-                menu.addItem(.separator())
-            }
         }
         self.addActionableSections(descriptor.sections, to: menu, width: menuWidth)
     }
@@ -264,17 +262,13 @@ extension StatusItemController {
             currentProvider: currentProvider,
             context: openAIContext,
             addedOpenAIWebItems: addedOpenAIWebItems)
-        if self.addUsageHistoryMenuItemIfNeeded(to: menu, provider: currentProvider) {
-            menu.addItem(.separator())
-        }
         self.addActionableSections(descriptor.sections, to: menu, width: menuWidth)
     }
 
     private struct OpenAIWebContext {
         let hasUsageBreakdown: Bool
-        let hasCreditsHistory: Bool
         let hasCostHistory: Bool
-        let canShowBuyCredits: Bool
+        let hasPlanUtilizationHistory: Bool
         let hasOpenAIWebMenuItems: Bool
     }
 
@@ -293,19 +287,16 @@ extension StatusItemController {
         let codexProjection = self.store.codexConsumerProjectionIfNeeded(
             for: currentProvider,
             surface: .liveCard)
-        let hasCreditsHistory = codexProjection?.hasCreditsHistory == true
         let hasUsageBreakdown = codexProjection?.hasUsageBreakdown == true
         let hasCostHistory = self.settings.isCostUsageEffectivelyEnabled(for: currentProvider) &&
             (self.store.tokenSnapshot(for: currentProvider)?.daily.isEmpty == false)
-        let canShowBuyCredits = self.settings.showOptionalCreditsAndExtraUsage &&
-            codexProjection?.canShowBuyCredits == true
+        let hasPlanUtilizationHistory = self.canShowUsageHistorySubmenu(provider: currentProvider)
         let hasOpenAIWebMenuItems = !showAllTokenAccounts &&
-            (hasCreditsHistory || hasUsageBreakdown || hasCostHistory)
+            (hasUsageBreakdown || hasCostHistory || hasPlanUtilizationHistory)
         return OpenAIWebContext(
             hasUsageBreakdown: hasUsageBreakdown,
-            hasCreditsHistory: hasCreditsHistory,
             hasCostHistory: hasCostHistory,
-            canShowBuyCredits: canShowBuyCredits,
+            hasPlanUtilizationHistory: hasPlanUtilizationHistory,
             hasOpenAIWebMenuItems: hasOpenAIWebMenuItems)
     }
 
@@ -428,9 +419,8 @@ extension StatusItemController {
         if context.openAIContext.hasOpenAIWebMenuItems {
             let webItems = OpenAIWebMenuItems(
                 hasUsageBreakdown: context.openAIContext.hasUsageBreakdown,
-                hasCreditsHistory: context.openAIContext.hasCreditsHistory,
                 hasCostHistory: context.openAIContext.hasCostHistory,
-                canShowBuyCredits: context.openAIContext.canShowBuyCredits)
+                hasPlanUtilizationHistory: context.openAIContext.hasPlanUtilizationHistory)
             self.addMenuCardSections(
                 to: menu,
                 model: model,
@@ -444,9 +434,6 @@ extension StatusItemController {
             UsageMenuCardView(model: model, width: context.menuWidth),
             id: "menuCard",
             width: context.menuWidth))
-        if context.openAIContext.canShowBuyCredits {
-            menu.addItem(self.makeBuyCreditsItem())
-        }
         menu.addItem(.separator())
         return false
     }
@@ -463,11 +450,8 @@ extension StatusItemController {
             if context.hasUsageBreakdown {
                 _ = self.addUsageBreakdownSubmenu(to: menu)
             }
-            if context.hasCreditsHistory {
-                _ = self.addCreditsHistorySubmenu(to: menu)
-            }
-            if context.hasCostHistory {
-                _ = self.addCostHistorySubmenu(to: menu, provider: currentProvider)
+            if context.hasCostHistory || context.hasPlanUtilizationHistory {
+                _ = self.addCostDetailsSubmenu(to: menu, provider: currentProvider)
             }
         }
         menu.addItem(.separator())
@@ -991,13 +975,10 @@ extension StatusItemController {
         webItems: OpenAIWebMenuItems)
     {
         let hasUsageBlock = !model.metrics.isEmpty || model.placeholder != nil
-        let hasCredits = model.creditsText != nil
-        let hasExtraUsage = model.providerCost != nil
-        let hasCost = model.tokenUsage != nil
-        let bottomPadding = CGFloat(hasCredits ? 4 : 6)
+        let hasCost = model.tokenUsage != nil || model.providerCost != nil
+        let bottomPadding = CGFloat(6)
         let sectionSpacing = CGFloat(6)
         let usageBottomPadding = bottomPadding
-        let creditsBottomPadding = bottomPadding
 
         let headerView = UsageMenuCardHeaderSectionView(
             model: model,
@@ -1022,54 +1003,19 @@ extension StatusItemController {
                 submenu: usageSubmenu))
         }
 
-        if hasCredits || hasExtraUsage || hasCost {
+        if hasCost {
             menu.addItem(.separator())
         }
 
-        if hasCredits {
-            if hasExtraUsage || hasCost {
-                menu.addItem(.separator())
-            }
-            let creditsView = UsageMenuCardCreditsSectionView(
-                model: model,
-                showBottomDivider: false,
-                topPadding: sectionSpacing,
-                bottomPadding: creditsBottomPadding,
-                width: width)
-            let creditsSubmenu = webItems.hasCreditsHistory ? self.makeCreditsHistorySubmenu() : nil
-            menu.addItem(self.makeMenuCardItem(
-                creditsView,
-                id: "menuCardCredits",
-                width: width,
-                submenu: creditsSubmenu))
-            if webItems.canShowBuyCredits {
-                menu.addItem(self.makeBuyCreditsItem())
-            }
-        }
-        if hasExtraUsage {
-            if hasCredits {
-                menu.addItem(.separator())
-            }
-            let extraUsageView = UsageMenuCardExtraUsageSectionView(
-                model: model,
-                topPadding: sectionSpacing,
-                bottomPadding: bottomPadding,
-                width: width)
-            menu.addItem(self.makeMenuCardItem(
-                extraUsageView,
-                id: "menuCardExtraUsage",
-                width: width))
-        }
         if hasCost {
-            if hasCredits || hasExtraUsage {
-                menu.addItem(.separator())
-            }
             let costView = UsageMenuCardCostSectionView(
                 model: model,
                 topPadding: sectionSpacing,
                 bottomPadding: bottomPadding,
                 width: width)
-            let costSubmenu = webItems.hasCostHistory ? self.makeCostHistorySubmenu(provider: provider) : nil
+            let costSubmenu = webItems.hasCostHistory || webItems.hasPlanUtilizationHistory
+                ? self.makeCostDetailsSubmenu(provider: provider)
+                : nil
             menu.addItem(self.makeMenuCardItem(
                 costView,
                 id: "menuCardCost",
@@ -1138,17 +1084,6 @@ extension StatusItemController {
         return image
     }
 
-    private func makeBuyCreditsItem() -> NSMenuItem {
-        let item = NSMenuItem(title: "Buy Credits...", action: #selector(self.openCreditsPurchase), keyEquivalent: "")
-        item.target = self
-        if let image = NSImage(systemSymbolName: "plus.circle", accessibilityDescription: nil) {
-            image.isTemplate = true
-            image.size = NSSize(width: 16, height: 16)
-            item.image = image
-        }
-        return item
-    }
-
     @discardableResult
     private func addCreditsHistorySubmenu(to menu: NSMenu) -> Bool {
         guard let submenu = self.makeCreditsHistorySubmenu() else { return false }
@@ -1170,8 +1105,8 @@ extension StatusItemController {
     }
 
     @discardableResult
-    private func addCostHistorySubmenu(to menu: NSMenu, provider: UsageProvider) -> Bool {
-        guard let submenu = self.makeCostHistorySubmenu(provider: provider) else { return false }
+    private func addCostDetailsSubmenu(to menu: NSMenu, provider: UsageProvider) -> Bool {
+        guard let submenu = self.makeCostDetailsSubmenu(provider: provider) else { return false }
         let item = NSMenuItem(title: "Usage history (30 days)", action: nil, keyEquivalent: "")
         item.isEnabled = true
         item.submenu = submenu
@@ -1245,11 +1180,19 @@ extension StatusItemController {
         return self.makeHostedSubviewPlaceholderMenu(chartID: Self.costHistoryChartID, provider: provider)
     }
 
+    private func makeCostDetailsSubmenu(provider: UsageProvider) -> NSMenu? {
+        let hasCostHistory = self.makeCostHistorySubmenu(provider: provider) != nil
+        let hasUsageHistory = self.canShowUsageHistorySubmenu(provider: provider)
+        guard hasCostHistory || hasUsageHistory else { return nil }
+        return self.makeHostedSubviewPlaceholderMenu(chartID: Self.costDetailsChartID, provider: provider)
+    }
+
     private func isHostedSubviewMenu(_ menu: NSMenu) -> Bool {
         let ids: Set = [
             Self.usageBreakdownChartID,
             Self.creditsHistoryChartID,
             Self.costHistoryChartID,
+            Self.costDetailsChartID,
             Self.usageHistoryChartID,
         ]
         return menu.items.contains { item in

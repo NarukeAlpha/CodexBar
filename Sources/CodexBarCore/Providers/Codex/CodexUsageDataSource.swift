@@ -12,7 +12,7 @@ public enum CodexUsageDataSource: String, CaseIterable, Identifiable, Sendable {
     public var displayName: String {
         switch self {
         case .auto: "Auto"
-        case .oauth: "OAuth API"
+        case .oauth: "HTTP API"
         case .cli: "CLI (RPC/PTY)"
         }
     }
@@ -22,7 +22,7 @@ public enum CodexUsageDataSource: String, CaseIterable, Identifiable, Sendable {
         case .auto:
             "auto"
         case .oauth:
-            "oauth"
+            "http"
         case .cli:
             "cli"
         }

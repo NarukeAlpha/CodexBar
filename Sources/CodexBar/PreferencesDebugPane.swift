@@ -102,14 +102,9 @@ struct DebugPane: View {
                 {
                     Picker("Provider", selection: self.$currentLogProvider) {
                         Text("Codex").tag(UsageProvider.codex)
-                        Text("Claude").tag(UsageProvider.claude)
-                        Text("Cursor").tag(UsageProvider.cursor)
-                        Text("Augment").tag(UsageProvider.augment)
-                        Text("Amp").tag(UsageProvider.amp)
-                        Text("Ollama").tag(UsageProvider.ollama)
                     }
                     .pickerStyle(.segmented)
-                    .frame(width: 460)
+                    .frame(width: 160)
 
                     HStack(spacing: 12) {
                         Button { self.loadLog(self.currentLogProvider) } label: {
@@ -126,13 +121,6 @@ struct DebugPane: View {
                             Label("Save to file", systemImage: "externaldrive.badge.plus")
                         }
                         .disabled(self.isLoadingLog && self.logText.isEmpty)
-
-                        if self.currentLogProvider == .claude {
-                            Button { self.loadClaudeDump() } label: {
-                                Label("Load parse dump", systemImage: "doc.text.magnifyingglass")
-                            }
-                            .disabled(self.isLoadingLog)
-                        }
                     }
 
                     Button {
@@ -247,10 +235,9 @@ struct DebugPane: View {
                 {
                     Picker("Provider", selection: self.$currentLogProvider) {
                         Text("Codex").tag(UsageProvider.codex)
-                        Text("Claude").tag(UsageProvider.claude)
                     }
                     .pickerStyle(.segmented)
-                    .frame(width: 240)
+                    .frame(width: 160)
 
                     HStack(spacing: 12) {
                         Button {
@@ -271,7 +258,7 @@ struct DebugPane: View {
 
                 SettingsSection(
                     title: "CLI sessions",
-                    caption: "Keep Codex/Claude CLI sessions alive after a probe. Default exits once data is captured.")
+                    caption: "Keep Codex CLI sessions alive after a probe. Default exits once data is captured.")
                 {
                     PreferenceToggleRow(
                         title: "Keep CLI sessions alive",
@@ -295,15 +282,9 @@ struct DebugPane: View {
                 {
                     Picker("Provider", selection: self.$currentErrorProvider) {
                         Text("Codex").tag(UsageProvider.codex)
-                        Text("Claude").tag(UsageProvider.claude)
-                        Text("Gemini").tag(UsageProvider.gemini)
-                        Text("Antigravity").tag(UsageProvider.antigravity)
-                        Text("Augment").tag(UsageProvider.augment)
-                        Text("Amp").tag(UsageProvider.amp)
-                        Text("Ollama").tag(UsageProvider.ollama)
                     }
                     .pickerStyle(.segmented)
-                    .frame(width: 360)
+                    .frame(width: 160)
 
                     TextField("Simulated error text", text: self.$simulatedErrorText, axis: .vertical)
                         .lineLimit(4)
@@ -326,7 +307,7 @@ struct DebugPane: View {
                         .controlSize(.small)
                     }
 
-                    let supportsTokenError = self.currentErrorProvider == .codex || self.currentErrorProvider == .claude
+                    let supportsTokenError = self.currentErrorProvider == .codex
                     HStack(spacing: 12) {
                         Button {
                             self.store._setTokenErrorForTesting(
@@ -354,7 +335,6 @@ struct DebugPane: View {
                     caption: "Resolved Codex binary and PATH layers; startup login PATH capture (short timeout).")
                 {
                     self.binaryRow(title: "Codex binary", value: self.store.pathDebugInfo.codexBinary)
-                    self.binaryRow(title: "Claude binary", value: self.store.pathDebugInfo.claudeBinary)
 
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Effective PATH")
@@ -475,17 +455,6 @@ struct DebugPane: View {
             Text(value ?? "Not found")
                 .font(.system(.footnote, design: .monospaced))
                 .foregroundStyle(value == nil ? .secondary : .primary)
-        }
-    }
-
-    private func loadClaudeDump() {
-        self.isLoadingLog = true
-        Task {
-            let text = await self.store.debugClaudeDump()
-            await MainActor.run {
-                self.logText = text
-                self.isLoadingLog = false
-            }
         }
     }
 

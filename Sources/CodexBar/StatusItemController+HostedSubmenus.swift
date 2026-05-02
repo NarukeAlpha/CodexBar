@@ -41,6 +41,14 @@ extension StatusItemController {
             } else {
                 false
             }
+        case Self.costDetailsChartID:
+            if let providerRawValue = placeholder.toolTip,
+               let provider = UsageProvider(rawValue: providerRawValue)
+            {
+                self.appendCostDetailsChartItems(to: menu, provider: provider, width: width)
+            } else {
+                false
+            }
         case Self.usageHistoryChartID:
             if let providerRawValue = placeholder.toolTip,
                let provider = UsageProvider(rawValue: providerRawValue)
@@ -149,5 +157,22 @@ extension StatusItemController {
         chartItem.representedObject = Self.costHistoryChartID
         submenu.addItem(chartItem)
         return true
+    }
+
+    @discardableResult
+    func appendCostDetailsChartItems(
+        to submenu: NSMenu,
+        provider: UsageProvider,
+        width: CGFloat) -> Bool
+    {
+        let addedCostHistory = self.appendCostHistoryChartItem(to: submenu, provider: provider, width: width)
+        let canShowUsageHistory = self.canShowUsageHistorySubmenu(provider: provider)
+        if addedCostHistory, canShowUsageHistory {
+            submenu.addItem(.separator())
+        }
+        let addedUsageHistory = canShowUsageHistory
+            ? self.appendUsageHistoryChartItem(to: submenu, provider: provider, width: width)
+            : false
+        return addedCostHistory || addedUsageHistory
     }
 }

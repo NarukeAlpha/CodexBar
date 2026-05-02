@@ -18,10 +18,8 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.9.1"),
-        .package(url: "https://github.com/steipete/Commander", from: "0.2.1"),
         .package(url: "https://github.com/apple/swift-log", from: "1.12.0"),
         .package(url: "https://github.com/apple/swift-syntax", from: "600.0.1"),
-        .package(url: "https://github.com/sindresorhus/KeyboardShortcuts", from: "2.4.0"),
         sweetCookieKitDependency,
     ],
     targets: {
@@ -48,40 +46,14 @@ let package = Package(
                 dependencies: [
                     "CodexBarMacros",
                 ]),
-            .executableTarget(
-                name: "CodexBarCLI",
-                dependencies: [
-                    "CodexBarCore",
-                    .product(name: "Commander", package: "Commander"),
-                ],
-                path: "Sources/CodexBarCLI",
-                swiftSettings: [
-                    .enableUpcomingFeature("StrictConcurrency"),
-                ]),
-            .testTarget(
-                name: "CodexBarLinuxTests",
-                dependencies: ["CodexBarCore", "CodexBarCLI"],
-                path: "TestsLinux",
-                swiftSettings: [
-                    .enableUpcomingFeature("StrictConcurrency"),
-                    .enableExperimentalFeature("SwiftTesting"),
-                ]),
         ]
 
         #if os(macOS)
         targets.append(contentsOf: [
             .executableTarget(
-                name: "CodexBarClaudeWatchdog",
-                dependencies: [],
-                path: "Sources/CodexBarClaudeWatchdog",
-                swiftSettings: [
-                    .enableUpcomingFeature("StrictConcurrency"),
-                ]),
-            .executableTarget(
                 name: "CodexBar",
                 dependencies: [
                     .product(name: "Sparkle", package: "Sparkle"),
-                    .product(name: "KeyboardShortcuts", package: "KeyboardShortcuts"),
                     "CodexBarMacroSupport",
                     "CodexBarCore",
                 ],
@@ -101,18 +73,11 @@ let package = Package(
                 swiftSettings: [
                     .enableUpcomingFeature("StrictConcurrency"),
                 ]),
-            .executableTarget(
-                name: "CodexBarClaudeWebProbe",
-                dependencies: ["CodexBarCore"],
-                path: "Sources/CodexBarClaudeWebProbe",
-                swiftSettings: [
-                    .enableUpcomingFeature("StrictConcurrency"),
-                ]),
         ])
 
         targets.append(.testTarget(
             name: "CodexBarTests",
-            dependencies: ["CodexBar", "CodexBarCore", "CodexBarCLI", "CodexBarWidget"],
+            dependencies: ["CodexBar", "CodexBarCore", "CodexBarWidget"],
             path: "Tests",
             resources: [
                 .copy("CodexBarTests/Fixtures"),

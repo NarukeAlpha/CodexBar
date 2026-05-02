@@ -5,79 +5,20 @@ import WidgetKit
 
 enum ProviderChoice: String, AppEnum {
     case codex
-    case claude
-    case gemini
-    case alibaba
-    case antigravity
-    case zai
-    case copilot
-    case minimax
-    case kilo
-    case opencode
-    case opencodego
 
     static let typeDisplayRepresentation = TypeDisplayRepresentation(name: "Provider")
 
     static let caseDisplayRepresentations: [ProviderChoice: DisplayRepresentation] = [
         .codex: DisplayRepresentation(title: "Codex"),
-        .claude: DisplayRepresentation(title: "Claude"),
-        .gemini: DisplayRepresentation(title: "Gemini"),
-        .alibaba: DisplayRepresentation(title: "Alibaba"),
-        .antigravity: DisplayRepresentation(title: "Antigravity"),
-        .zai: DisplayRepresentation(title: "z.ai"),
-        .copilot: DisplayRepresentation(title: "Copilot"),
-        .minimax: DisplayRepresentation(title: "MiniMax"),
-        .kilo: DisplayRepresentation(title: "Kilo"),
-        .opencode: DisplayRepresentation(title: "OpenCode"),
-        .opencodego: DisplayRepresentation(title: "OpenCode Go"),
     ]
 
     var provider: UsageProvider {
-        switch self {
-        case .codex: .codex
-        case .claude: .claude
-        case .gemini: .gemini
-        case .alibaba: .alibaba
-        case .antigravity: .antigravity
-        case .zai: .zai
-        case .copilot: .copilot
-        case .minimax: .minimax
-        case .kilo: .kilo
-        case .opencode: .opencode
-        case .opencodego: .opencodego
-        }
+        .codex
     }
 
-    // swiftlint:disable:next cyclomatic_complexity
     init?(provider: UsageProvider) {
-        switch provider {
-        case .codex: self = .codex
-        case .claude: self = .claude
-        case .gemini: self = .gemini
-        case .alibaba: self = .alibaba
-        case .antigravity: self = .antigravity
-        case .cursor: return nil // Cursor not yet supported in widgets
-        case .opencode: self = .opencode
-        case .opencodego: self = .opencodego
-        case .zai: self = .zai
-        case .factory: return nil // Factory not yet supported in widgets
-        case .copilot: self = .copilot
-        case .minimax: self = .minimax
-        case .vertexai: return nil // Vertex AI not yet supported in widgets
-        case .kilo: self = .kilo
-        case .kiro: return nil // Kiro not yet supported in widgets
-        case .augment: return nil // Augment not yet supported in widgets
-        case .jetbrains: return nil // JetBrains not yet supported in widgets
-        case .kimi: return nil // Kimi not yet supported in widgets
-        case .kimik2: return nil // Kimi K2 not yet supported in widgets
-        case .amp: return nil // Amp not yet supported in widgets
-        case .ollama: return nil // Ollama not yet supported in widgets
-        case .synthetic: return nil // Synthetic not yet supported in widgets
-        case .openrouter: return nil // OpenRouter not yet supported in widgets
-        case .warp: return nil // Warp not yet supported in widgets
-        case .perplexity: return nil // Perplexity not yet supported in widgets
-        case .abacus: return nil // Abacus AI not yet supported in widgets
-        }
+        guard provider == .codex else { return nil }
+        self = .codex
     }
 }
 
@@ -232,10 +173,8 @@ struct CodexBarSwitcherTimelineProvider: TimelineProvider {
     }
 
     static func supportedProviders(from snapshot: WidgetSnapshot) -> [UsageProvider] {
-        let enabled = snapshot.enabledProviders
-        let providers = enabled.isEmpty ? snapshot.entries.map(\.provider) : enabled
-        let supported = providers.filter { ProviderChoice(provider: $0) != nil }
-        return supported.isEmpty ? [.codex] : supported
+        _ = snapshot
+        return [.codex]
     }
 }
 

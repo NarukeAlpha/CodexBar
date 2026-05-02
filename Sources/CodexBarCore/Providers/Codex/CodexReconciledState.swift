@@ -39,6 +39,22 @@ public struct CodexReconciledState: Sendable {
             updatedAt: updatedAt)
     }
 
+    public static func fromDashboardHTTP(
+        response: CodexUsageResponse,
+        updatedAt: Date = Date()) -> CodexReconciledState?
+    {
+        let identity = ProviderIdentitySnapshot(
+            providerID: .codex,
+            accountEmail: nil,
+            accountOrganization: nil,
+            loginMethod: self.resolvePlan(response: response))
+        return self.make(
+            primary: self.makeWindow(response.rateLimit?.primaryWindow),
+            secondary: self.makeWindow(response.rateLimit?.secondaryWindow),
+            identity: identity,
+            updatedAt: updatedAt)
+    }
+
     public static func fromAttachedDashboard(
         snapshot: OpenAIDashboardSnapshot,
         provider: UsageProvider = .codex,
@@ -132,5 +148,10 @@ public struct CodexReconciledState: Sendable {
         let authDict = payload["https://api.openai.com/auth"] as? [String: Any]
         let plan = (authDict?["chatgpt_plan_type"] as? String) ?? (payload["chatgpt_plan_type"] as? String)
         return plan?.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private static func resolvePlan(response: CodexUsageResponse) -> String? {
+        guard let plan = response.planType?.rawValue, !plan.isEmpty else { return nil }
+        return plan
     }
 }

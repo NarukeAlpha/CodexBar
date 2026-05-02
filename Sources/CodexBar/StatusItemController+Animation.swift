@@ -533,12 +533,18 @@ extension StatusItemController {
     }
 
     private func setButtonImage(_ image: NSImage, for button: NSStatusBarButton) {
+        if button.alignment != .center {
+            button.alignment = .center
+        }
         if button.image === image { return }
         button.image = image
     }
 
     private func setButtonTitle(_ title: String?, for button: NSStatusBarButton) {
         let value = title ?? ""
+        if button.alignment != .center {
+            button.alignment = .center
+        }
         if button.title != value {
             button.title = value
         }

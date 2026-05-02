@@ -32,9 +32,13 @@ extension StatusItemController {
         return true
     }
 
+    func canShowUsageHistorySubmenu(provider: UsageProvider) -> Bool {
+        guard self.store.supportsPlanUtilizationHistory(for: provider) else { return false }
+        return !self.store.shouldHidePlanUtilizationMenuItem(for: provider)
+    }
+
     private func makeUsageHistorySubmenu(provider: UsageProvider) -> NSMenu? {
-        guard self.store.supportsPlanUtilizationHistory(for: provider) else { return nil }
-        guard !self.store.shouldHidePlanUtilizationMenuItem(for: provider) else { return nil }
+        guard self.canShowUsageHistorySubmenu(provider: provider) else { return nil }
         return self.makeHostedSubviewPlaceholderMenu(chartID: Self.usageHistoryChartID, provider: provider)
     }
 

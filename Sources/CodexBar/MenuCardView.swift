@@ -135,9 +135,7 @@ struct UsageMenuCardView: View {
                 }
             } else {
                 let hasUsage = !self.model.metrics.isEmpty || !self.model.usageNotes.isEmpty
-                let hasCredits = self.model.creditsText != nil
-                let hasProviderCost = self.model.providerCost != nil
-                let hasCost = self.model.tokenUsage != nil || hasProviderCost
+                let hasCost = self.model.tokenUsage != nil || self.model.providerCost != nil
 
                 VStack(alignment: .leading, spacing: 12) {
                     if hasUsage {
@@ -153,58 +151,17 @@ struct UsageMenuCardView: View {
                             }
                         }
                     }
-                    if hasUsage, hasCredits || hasCost {
+                    if hasUsage, hasCost {
                         Divider()
                     }
-                    if let credits = self.model.creditsText {
-                        CreditsBarContent(
-                            creditsText: credits,
-                            creditsRemaining: self.model.creditsRemaining,
-                            hintText: self.model.creditsHintText,
-                            hintCopyText: self.model.creditsHintCopyText,
+                    if hasCost {
+                        CostContent(
+                            tokenUsage: self.model.tokenUsage,
+                            providerCost: self.model.providerCost,
                             progressColor: self.model.progressColor)
-                    }
-                    if hasCredits, hasCost {
-                        Divider()
-                    }
-                    if let providerCost = self.model.providerCost {
-                        ProviderCostContent(
-                            section: providerCost,
-                            progressColor: self.model.progressColor)
-                    }
-                    if hasProviderCost, self.model.tokenUsage != nil {
-                        Divider()
-                    }
-                    if let tokenUsage = self.model.tokenUsage {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Cost")
-                                .font(.body)
-                                .fontWeight(.medium)
-                            Text(tokenUsage.sessionLine)
-                                .font(.footnote)
-                            Text(tokenUsage.monthLine)
-                                .font(.footnote)
-                            if let hint = tokenUsage.hintLine, !hint.isEmpty {
-                                Text(hint)
-                                    .font(.footnote)
-                                    .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
-                                    .lineLimit(4)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                            if let error = tokenUsage.errorLine, !error.isEmpty {
-                                Text(error)
-                                    .font(.footnote)
-                                    .foregroundStyle(MenuHighlightStyle.error(self.isHighlighted))
-                                    .lineLimit(4)
-                                    .fixedSize(horizontal: false, vertical: true)
-                                    .overlay {
-                                        ClickToCopyOverlay(copyText: tokenUsage.errorCopyText ?? error)
-                                    }
-                            }
-                        }
                     }
                 }
-                .padding(.bottom, self.model.creditsText == nil ? 6 : 0)
+                .padding(.bottom, 6)
             }
         }
         .padding(.horizontal, 16)
@@ -575,51 +532,70 @@ private struct CreditsBarContent: View {
     }
 }
 
+private struct CostContent: View {
+    let tokenUsage: UsageMenuCardView.Model.TokenUsageSection?
+    let providerCost: UsageMenuCardView.Model.ProviderCostSection?
+    let progressColor: Color
+    @Environment(\.menuItemHighlighted) private var isHighlighted
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if let tokenUsage {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Cost")
+                        .font(.body)
+                        .fontWeight(.medium)
+                    Text(tokenUsage.sessionLine)
+                        .font(.caption)
+                    Text(tokenUsage.monthLine)
+                        .font(.caption)
+                    if let hint = tokenUsage.hintLine, !hint.isEmpty {
+                        Text(hint)
+                            .font(.footnote)
+                            .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
+                            .lineLimit(4)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    if let error = tokenUsage.errorLine, !error.isEmpty {
+                        Text(error)
+                            .font(.footnote)
+                            .foregroundStyle(MenuHighlightStyle.error(self.isHighlighted))
+                            .lineLimit(4)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .overlay {
+                                ClickToCopyOverlay(copyText: tokenUsage.errorCopyText ?? error)
+                            }
+                    }
+                }
+            }
+            if tokenUsage != nil, providerCost != nil {
+                Divider()
+            }
+            if let providerCost {
+                ProviderCostContent(section: providerCost, progressColor: self.progressColor)
+            }
+        }
+    }
+}
+
 struct UsageMenuCardCostSectionView: View {
     let model: UsageMenuCardView.Model
     let topPadding: CGFloat
     let bottomPadding: CGFloat
     let width: CGFloat
-    @Environment(\.menuItemHighlighted) private var isHighlighted
 
     var body: some View {
-        let hasTokenCost = self.model.tokenUsage != nil
+        let hasCost = self.model.tokenUsage != nil || self.model.providerCost != nil
         return Group {
-            if hasTokenCost {
-                VStack(alignment: .leading, spacing: 10) {
-                    if let tokenUsage = self.model.tokenUsage {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Cost")
-                                .font(.body)
-                                .fontWeight(.medium)
-                            Text(tokenUsage.sessionLine)
-                                .font(.caption)
-                            Text(tokenUsage.monthLine)
-                                .font(.caption)
-                            if let hint = tokenUsage.hintLine, !hint.isEmpty {
-                                Text(hint)
-                                    .font(.footnote)
-                                    .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
-                                    .lineLimit(4)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                            if let error = tokenUsage.errorLine, !error.isEmpty {
-                                Text(error)
-                                    .font(.footnote)
-                                    .foregroundStyle(MenuHighlightStyle.error(self.isHighlighted))
-                                    .lineLimit(4)
-                                    .fixedSize(horizontal: false, vertical: true)
-                                    .overlay {
-                                        ClickToCopyOverlay(copyText: tokenUsage.errorCopyText ?? error)
-                                    }
-                            }
-                        }
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, self.topPadding)
-                .padding(.bottom, self.bottomPadding)
-                .frame(width: self.width, alignment: .leading)
+            if hasCost {
+                CostContent(
+                    tokenUsage: self.model.tokenUsage,
+                    providerCost: self.model.providerCost,
+                    progressColor: self.model.progressColor)
+                    .padding(.horizontal, 16)
+                    .padding(.top, self.topPadding)
+                    .padding(.bottom, self.bottomPadding)
+                    .frame(width: self.width, alignment: .leading)
             }
         }
     }
@@ -730,13 +706,7 @@ extension UsageMenuCardView.Model {
             metadata: input.metadata)
         let metrics = Self.metrics(input: input)
         let usageNotes = Self.usageNotes(input: input)
-        let creditsText: String? = if input.provider == .openrouter {
-            nil
-        } else if input.codexProjection != nil, !input.showOptionalCreditsAndExtraUsage {
-            nil
-        } else {
-            Self.creditsLine(metadata: input.metadata, credits: input.credits, error: input.creditsError)
-        }
+        let creditsText: String? = nil
         let providerCost: ProviderCostSection? = if input.provider == .claude, !input.showOptionalCreditsAndExtraUsage {
             nil
         } else {

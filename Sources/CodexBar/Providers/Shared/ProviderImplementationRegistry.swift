@@ -10,35 +10,11 @@ enum ProviderImplementationRegistry {
     private static let lock = NSLock()
     private static let store = Store()
 
-    // swiftlint:disable:next cyclomatic_complexity
     private static func makeImplementation(for provider: UsageProvider) -> (any ProviderImplementation) {
         switch provider {
         case .codex: CodexProviderImplementation()
-        case .claude: ClaudeProviderImplementation()
-        case .cursor: CursorProviderImplementation()
-        case .opencode: OpenCodeProviderImplementation()
-        case .opencodego: OpenCodeGoProviderImplementation()
-        case .alibaba: AlibabaCodingPlanProviderImplementation()
-        case .factory: FactoryProviderImplementation()
-        case .gemini: GeminiProviderImplementation()
-        case .antigravity: AntigravityProviderImplementation()
-        case .copilot: CopilotProviderImplementation()
-        case .zai: ZaiProviderImplementation()
-        case .minimax: MiniMaxProviderImplementation()
-        case .kimi: KimiProviderImplementation()
-        case .kilo: KiloProviderImplementation()
-        case .kiro: KiroProviderImplementation()
-        case .vertexai: VertexAIProviderImplementation()
-        case .augment: AugmentProviderImplementation()
-        case .jetbrains: JetBrainsProviderImplementation()
-        case .kimik2: KimiK2ProviderImplementation()
-        case .amp: AmpProviderImplementation()
-        case .ollama: OllamaProviderImplementation()
-        case .synthetic: SyntheticProviderImplementation()
-        case .openrouter: OpenRouterProviderImplementation()
-        case .warp: WarpProviderImplementation()
-        case .perplexity: PerplexityProviderImplementation()
-        case .abacus: AbacusProviderImplementation()
+        default:
+            preconditionFailure("Unsupported provider implementation: \(provider.rawValue)")
         }
     }
 

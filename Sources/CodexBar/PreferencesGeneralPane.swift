@@ -47,7 +47,6 @@ struct GeneralPane: View {
                                     .font(.footnote)
                                     .foregroundStyle(.tertiary)
 
-                                self.costStatusLine(provider: .claude)
                                 self.costStatusLine(provider: .codex)
                             }
                         }
@@ -88,8 +87,7 @@ struct GeneralPane: View {
                     }
                     PreferenceToggleRow(
                         title: "Check provider status",
-                        subtitle: "Polls OpenAI/Claude status pages and Google Workspace for " +
-                            "Gemini/Antigravity, surfacing incidents in the icon and menu.",
+                        subtitle: "Polls OpenAI status and surfaces incidents in the icon and menu.",
                         binding: self.$settings.statusChecksEnabled)
                     PreferenceToggleRow(
                         title: "Session quota notifications",
@@ -117,12 +115,6 @@ struct GeneralPane: View {
 
     private func costStatusLine(provider: UsageProvider) -> some View {
         let name = ProviderDescriptorRegistry.descriptor(for: provider).metadata.displayName
-
-        guard provider == .claude || provider == .codex else {
-            return Text("\(name): unsupported")
-                .font(.footnote)
-                .foregroundStyle(.tertiary)
-        }
 
         if self.store.isTokenRefreshInFlight(for: provider) {
             let elapsed: String = {
